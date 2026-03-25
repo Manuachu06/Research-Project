@@ -20,3 +20,34 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+
+### Music Generator ###
+# Generated audio output files
+backend/outputs/
+outputs/
+
+# Hugging Face model cache
+.cache/
+~/.cache/huggingface/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+### OS ###
+.DS_Store
+Thumbs.db
