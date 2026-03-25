@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  music-generator:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist generated audio files between container restarts
+      - ./outputs:/app/backend/outputs
+    environment:
+      - MUSIC_GEN_HOST=0.0.0.0
+      - MUSIC_GEN_PORT=8000
+      - MUSIC_GEN_DEFAULT_MODEL=facebook/musicgen-melody
+      - MUSIC_GEN_WHISPER_MODEL_SIZE=base
+    # Uncomment to enable GPU support (requires nvidia-container-toolkit)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

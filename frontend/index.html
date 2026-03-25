@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Music Generator</title>
+
+    <!-- WaveSurfer for audio waveform visualization -->
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ========================================================
+     HEADER
+======================================================== -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">🎵</span>
+      <span class="logo-text">AI Music Generator</span>
+    </div>
+    <p class="tagline">Generate original music from text, voice & lyrics — powered by MusicGen + Whisper + Demucs</p>
+  </div>
+</header>
+
+<!-- ========================================================
+     MAIN
+======================================================== -->
+<main class="container">
+
+  <!-- ---- Device / health badge ---- -->
+  <div id="health-badge" class="health-badge loading">
+    <span class="badge-dot"></span>
+    <span id="health-text">Connecting…</span>
+  </div>
+
+  <!-- ======================================================
+       INPUT CARD
+  ====================================================== -->
+  <section class="card" id="input-card">
+    <h2 class="card-title">🎼 Create Music</h2>
+
+    <form id="generate-form" enctype="multipart/form-data">
+
+      <!-- Model selector -->
+      <div class="form-group">
+        <label for="model-select">Model</label>
+        <select id="model-select" name="model_id">
+          <option value="facebook/musicgen-melody" selected>MusicGen Melody (recommended)</option>
+          <option value="facebook/musicgen-small">MusicGen Small (fast)</option>
+          <option value="facebook/musicgen-medium">MusicGen Medium</option>
+          <option value="facebook/musicgen-large">MusicGen Large (best quality)</option>
+          <option value="facebook/musicgen-stereo-small">MusicGen Stereo Small</option>
+        </select>
+        <small class="hint">MusicGen Melody supports audio melody conditioning.</small>
+      </div>
+
+      <!-- Text prompt -->
+      <div class="form-group">
+        <label for="text-prompt">
+          🎹 Music Description <span class="required">*</span>
+        </label>
+        <textarea
+          id="text-prompt"
+          name="text_prompt"
+          rows="3"
+          required
+          placeholder="e.g. Upbeat lo-fi hip-hop with mellow piano, soft drums, and a warm bassline. Relaxing study music."
+        ></textarea>
+        <small class="hint">Describe genre, mood, instruments, tempo, energy …</small>
+      </div>
+
+      <!-- Lyrics -->
+      <div class="form-group">
+        <label for="lyrics">🎤 Lyrics (optional)</label>
+        <textarea
+          id="lyrics"
+          name="lyrics"
+          rows="4"
+          placeholder="Paste or type your lyrics here…"
+        ></textarea>
+        <small class="hint">Lyrics are embedded into the conditioning prompt to guide the style and feel.</small>
+      </div>
+
+      <!-- Voice / audio upload -->
+      <div class="form-group">
+        <label>🎵 Reference Audio / Voice (optional)</label>
+        <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Upload reference audio">
+          <input type="file" id="audio-upload" name="audio_file" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
+          <div class="drop-zone-inner">
+            <span class="drop-icon">🎧</span>
+            <p>Drag & drop an audio file or <button type="button" class="link-btn" id="browse-btn">browse</button></p>
+            <p class="drop-hint">MP3, WAV, OGG, FLAC, M4A — max 50 MB</p>
+          </div>
+          <div id="file-preview" class="file-preview hidden">
+            <span class="file-icon">🎵</span>
+            <span id="file-name-display"></span>
+            <button type="button" class="remove-file" id="remove-audio" title="Remove file">✕</button>
+          </div>
+        </div>
+        <small class="hint">
+          Upload a song or hum a melody. <strong>Whisper</strong> will extract lyrics from speech,
+          and <strong>Demucs</strong> will isolate the melody for MusicGen-Melody conditioning.
+        </small>
+      </div>
+
+      <!-- Advanced settings (collapsible) -->
+      <details class="advanced-settings">
+        <summary>⚙️ Advanced settings</summary>
+        <div class="settings-grid">
+
+          <div class="form-group">
+            <label for="duration">Duration: <strong id="duration-val">15s</strong></label>
+            <input type="range" id="duration" name="duration" min="5" max="60" step="5" value="15" />
+            <div class="range-labels"><span>5s</span><span>60s</span></div>
+          </div>
+
+          <div class="form-group">
+            <label for="guidance-scale">Guidance Scale: <strong id="guidance-val">3.0</strong></label>
+            <input type="range" id="guidance-scale" name="guidance_scale" min="1" max="10" step="0.5" value="3" />
+            <div class="range-labels"><span>1 (free)</span><span>10 (strict)</span></div>
+          </div>
+
+          <div class="form-group">
+            <label for="top-k">Top-K: <strong id="topk-val">250</strong></label>
+            <input type="range" id="top-k" name="top_k" min="50" max="2000" step="50" value="250" />
+            <div class="range-labels"><span>50</span><span>2000</span></div>
+          </div>
+
+          <div class="form-group">
+            <label for="temperature">Temperature: <strong id="temp-val">1.0</strong></label>
+            <input type="range" id="temperature" name="temperature" min="0.5" max="2.0" step="0.1" value="1.0" />
+            <div class="range-labels"><span>0.5 (conservative)</span><span>2.0 (creative)</span></div>
+          </div>
+
+        </div>
+      </details>
+
+      <!-- Submit -->
+      <button type="submit" id="generate-btn" class="btn btn-primary btn-lg">
+        <span id="btn-label">✨ Generate Music</span>
+        <span id="btn-spinner" class="spinner hidden"></span>
+      </button>
+
+    </form>
+
+    <!-- Progress bar -->
+    <div id="progress-section" class="progress-section hidden">
+      <div class="progress-bar-wrap">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      <p id="progress-text" class="progress-text">Generating…</p>
+    </div>
+
+  </section>
+
+  <!-- ======================================================
+       RESULT CARD
+  ====================================================== -->
+  <section class="card hidden" id="result-card">
+    <h2 class="card-title">🎶 Generated Music</h2>
+
+    <!-- Prompt used -->
+    <div class="result-meta" id="result-meta"></div>
+
+    <!-- Waveform player -->
+    <div class="player-wrap">
+      <div id="waveform"></div>
+      <div class="player-controls">
+        <button id="play-pause-btn" class="btn btn-icon" title="Play / Pause">
+          <span id="play-icon">▶</span>
+        </button>
+        <div class="time-display">
+          <span id="current-time">0:00</span>
+          <span class="time-sep">/</span>
+          <span id="total-time">0:00</span>
+        </div>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8" title="Volume" />
+        <span class="volume-icon">🔊</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="result-actions">
+      <a id="download-link" href="#" download class="btn btn-success">⬇️ Download WAV</a>
+      <button id="generate-another" class="btn btn-outline">🔄 Generate Another</button>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       HISTORY CARD
+  ====================================================== -->
+  <section class="card" id="history-card">
+    <div class="history-header">
+      <h2 class="card-title">📂 Generated Files</h2>
+      <button id="refresh-history" class="btn btn-sm btn-outline">↻ Refresh</button>
+    </div>
+    <div id="history-list" class="history-list">
+      <p class="empty-state">No files yet. Generate some music above!</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ========================================================
+     TOAST
+======================================================== -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
